@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102a22">
+<title>FarmVision | Executive Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#102a22;--green:#1f6048;--lime:#b9edc9;--bg:#f3f6f4;--white:#fff;--ink:#1b2d24;--muted:#78877e;--line:#e1e9e3;--red:#b42318;--amber:#a45a08;--shadow:0 8px 28px #173c2910}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.top{background:var(--navy);color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:850;letter-spacing:-.6px}
+.logo{width:42px;height:42px;border-radius:14px;background:var(--lime);color:var(--navy);display:grid;place-items:center;font-size:24px}
+.brand small{display:block;font-size:10px;letter-spacing:1.8px;font-weight:600;opacity:.65}
+.actions{display:flex;gap:8px}
+.btn{border:1px solid var(--line);background:white;color:var(--ink);padding:10px 13px;border-radius:11px;font-weight:700}
+.btn-dark{border:1px solid #ffffff35;background:#ffffff10;color:white;padding:9px 12px;border-radius:10px}
+main{max-width:1250px;margin:auto;padding:22px 16px 55px}
+.hero{background:linear-gradient(120deg,#102a22,#28674d);color:white;padding:25px;border-radius:23px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:180px;height:180px;border:1px solid #ffffff18;border-radius:50%;right:-45px;top:-65px;box-shadow:0 0 0 25px #ffffff08,0 0 0 50px #ffffff05}
+.eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:850;opacity:.72;text-transform:uppercase}
+.hero h1{font-size:clamp(27px,5vw,39px);line-height:1.1;letter-spacing:-1px;margin:10px 0}
+.hero p{color:#d4e7dc;margin:0}
+.hero-row{display:flex;justify-content:space-between;align-items:end;gap:15px;flex-wrap:wrap}
+.live{display:inline-flex;align-items:center;gap:7px;background:#ffffff13;border:1px solid #ffffff25;border-radius:30px;padding:8px 11px;font-size:12px}
+.dot{width:8px;height:8px;background:#8ee5a9;border-radius:50%}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:17px 0}
+.stat{background:white;border:1px solid var(--line);border-radius:17px;padding:17px;box-shadow:var(--shadow)}
+.stat-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.stat small{color:var(--muted);font-weight:650}
+.stat-icon{width:35px;height:35px;border-radius:11px;background:#e9f5ed;display:grid;place-items:center;font-size:18px}
+.stat strong{display:block;font-size:31px;letter-spacing:-1px;margin-top:9px}
+.stat p{color:var(--muted);font-size:12px;margin:2px 0 0}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:25px 0 13px}
+.section-head h2{font-size:20px;margin:0}
+.muted{color:var(--muted);font-size:13px}
+.farm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.farm{background:white;border:1px solid var(--line);border-radius:18px;padding:17px;text-align:left;width:100%;color:var(--ink);box-shadow:var(--shadow);transition:.15s}
+.farm:hover{transform:translateY(-2px);border-color:#9bc9a9}
+.farm.selected{border:2px solid var(--green);padding:16px;background:#fbfefc}
+.farm-icon{width:44px;height:44px;background:#e9f5ed;border-radius:14px;display:grid;place-items:center;font-size:23px}
+.farm h3{margin:13px 0 2px;font-size:18px}
+.pill{display:inline-block;padding:5px 9px;border-radius:40px;background:#e9f5ed;color:var(--green);font-size:11px;font-weight:850}
+.pill.warn{background:#fff3dd;color:var(--amber)}
+.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:17px;box-shadow:var(--shadow)}
+.panel h2{margin:0;font-size:20px}
+.house-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.house{border:1px solid var(--line);border-radius:15px;padding:15px;background:#fff}
+.house h3{font-size:17px;margin:10px 0 3px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.record-list{display:grid;gap:10px;margin-top:14px}
+.record{border:1px solid var(--line);border-radius:13px;padding:14px}
+.record-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.record-grid div{background:#f5f8f5;border-radius:10px;padding:10px;min-width:0}
+.record-grid small{display:block;color:var(--muted);font-size:11px}
+.record-grid b{display:block;overflow-wrap:anywhere;margin-top:3px;font-size:14px}
+.filters{display:flex;gap:9px;flex-wrap:wrap}
+.filters select,.filters input{min-width:0;flex:1;border:1px solid var(--line);border-radius:10px;background:white;padding:10px}
+.empty{padding:25px;text-align:center;border:1px dashed #ccd9cf;border-radius:14px;color:var(--muted)}
+.notice{padding:13px 15px;border-radius:12px;background:#eaf3ff;color:#28517b;margin-top:15px;overflow-wrap:anywhere}
+.error{padding:13px 15px;border-radius:12px;background:#fff0ee;color:var(--red);margin-top:15px;overflow-wrap:anywhere}
+.success{padding:13px 15px;border-radius:12px;background:#e8f7ed;color:#21643a;margin-top:15px}
+.login-wrap{min-height:calc(100vh - 75px);display:grid;place-items:center;padding:20px}
+.login-card{width:min(100%,440px);background:white;border:1px solid var(--line);border-radius:22px;padding:25px;box-shadow:var(--shadow)}
+.login-card h1{font-size:29px;margin:8px 0}
+.field{display:grid;gap:6px;margin:13px 0}
+.field label{font-size:13px;font-weight:750;color:#526157}
+.field input{width:100%;border:1px solid #d5dfd8;border-radius:11px;padding:12px}
+.primary{background:var(--green);color:white;border:0;border-radius:11px;padding:12px 16px;font-weight:800}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
+#toast{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#102a22;color:white;padding:12px 16px;border-radius:12px;z-index:10;max-width:90%}
+@media(max-width:850px){.farm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.top{padding:12px}.brand{font-size:18px}.logo{width:37px;height:37px}main{padding:14px 11px 40px}.hero{padding:20px}.farm-grid,.house-grid{grid-template-columns:1fr}.stats{gap:9px}.stat{padding:13px}.stat strong{font-size:27px}.record-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="logo">◈</div><div>FarmVision<small>EXECUTIVE FARM MONITOR</small></div></div>
+  <div class="actions"><button class="btn-dark" id="langBtn">EN</button><button class="btn-dark hidden" id="logoutBtn">Log keluar</button></div>
+</header>
+
+<section class="login-wrap" id="loginView">
+  <div class="login-card">
+    <div class="eyebrow" style="color:#28704e">Management access</div>
+    <h1 data-i="welcome">Selamat datang, bos</h1>
+    <p class="muted" data-i="loginHint">Log masuk untuk melihat semua farm.</p>
+    <form id="loginForm">
+      <div class="field"><label data-i="email">E-mel</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label data-i="password">Kata laluan</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <button class="primary" type="submit" style="width:100%" data-i="login">Log masuk</button>
+    </form>
+    <div id="loginMessage"></div>
+    <p class="muted" data-i="adminOnly">Akses terhad kepada akaun bos/admin yang aktif.</p>
+  </div>
+</section>
+
+<main id="appView" class="hidden">
+  <section class="hero">
+    <div class="hero-row">
+      <div><div class="eyebrow" data-i="executive">EXECUTIVE OVERVIEW</div><h1 data-i="title">Pantauan Semua Farm</h1><p id="hello">—</p></div>
+      <div class="live"><span class="dot"></span><span data-i="connected">Sambungan awan aktif</span></div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><div class="stat-top"><small data-i="farmCount">Jumlah farm</small><div class="stat-icon">🏡</div></div><strong id="statFarms">0</strong><p data-i="farmCaption">Lokasi berdaftar</p></div>
+    <div class="stat"><div class="stat-top"><small data-i="houseCount">Jumlah kandang</small><div class="stat-icon">🐔</div></div><strong id="statHouses">0</strong><p data-i="houseCaption">Semua farm</p></div>
+    <div class="stat"><div class="stat-top"><small data-i="recordCount">Rekod ventilasi</small><div class="stat-icon">🌡️</div></div><strong id="statRecords">0</strong><p data-i="recordCaption">Rekod tersimpan</p></div>
+    <div class="stat"><div class="stat-top"><small data-i="alarmCount">Alarm dilaporkan</small><div class="stat-icon">🔔</div></div><strong id="statAlarms">0</strong><p data-i="alarmCaption">Rekod berstatus alarm</p></div>
+  </section>
+
+  <div id="globalMessage"></div>
+
+  <div class="section-head"><div><h2 data-i="allFarms">Semua farm</h2><div class="muted" data-i="chooseFarm">Pilih farm untuk melihat kandang.</div></div><button class="btn" id="refreshBtn" data-i="refresh">Muat semula</button></div>
+  <div id="farmGrid" class="farm-grid"><div class="empty">Loading…</div></div>
+
+  <section class="panel hidden" id="farmPanel">
+    <div class="row"><div><div class="eyebrow" style="color:#28704e" data-i="selectedFarm">FARM DIPILIH</div><h2 id="farmName">—</h2><div class="muted" id="farmLocation"></div></div><button class="btn" id="closeFarm" data-i="close">Tutup</button></div>
+    <div class="section-head"><h2 data-i="housesInFarm">Kandang dalam farm</h2><span class="pill" id="houseBadge">0</span></div>
+    <div id="houseGrid" class="house-grid"></div>
+  </section>
+
+  <section class="panel" id="recordsPanel">
+    <div class="section-head" style="margin-top:0"><div><h2 data-i="recentRecords">Rekod ventilasi terkini</h2><div class="muted" data-i="recentHint">Rekod yang dimasukkan oleh staf.</div></div></div>
+    <div class="filters"><select id="farmFilter"><option value="">Semua farm</option></select><input id="searchRecords" type="search" data-placeholder="search" placeholder="Cari kandang atau catatan"></div>
+    <div id="recordList" class="record-list"><div class="empty">Loading…</div></div>
+  </section>
+  <div class="footer">FarmVision · Executive Monitoring · v1.0</div>
+</main>
+<div id="toast"></div>
+
+<script>
+/* Masukkan URL asas Supabase dan Publishable key.
+   Jangan masukkan secret/service_role key di sini. */
+const SUPABASE_URL = "https://cbvdwvbwltoccsrhemjv.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dQjXcTdIlWctsFlj5W7Dng_e_uEUseH";
+
+const configured = SUPABASE_URL.startsWith("https://")
+ && !SUPABASE_URL.includes("PASTE_")
+ && SUPABASE_PUBLISHABLE_KEY.startsWith("sb_publishable_");
+const sb = configured ? window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY) : null;
+const $=id=>document.getElementById(id);
+let lang="ms",user=null,profile=null,farms=[],houses=[],records=[],selectedFarm=null;
+
+const words={
+ms:{
+welcome:"Selamat datang, bos",loginHint:"Log masuk untuk melihat semua farm.",email:"E-mel",password:"Kata laluan",login:"Log masuk",adminOnly:"Akses terhad kepada akaun bos/admin yang aktif.",executive:"PAPARAN EKSEKUTIF",title:"Pantauan Semua Farm",connected:"Sambungan awan aktif",farmCount:"Jumlah farm",farmCaption:"Lokasi berdaftar",houseCount:"Jumlah kandang",houseCaption:"Semua farm",recordCount:"Rekod ventilasi",recordCaption:"Rekod tersimpan",alarmCount:"Alarm dilaporkan",alarmCaption:"Rekod berstatus alarm",allFarms:"Semua farm",chooseFarm:"Pilih farm untuk melihat kandang.",refresh:"Muat semula",selectedFarm:"FARM DIPILIH",housesInFarm:"Kandang dalam farm",close:"Tutup",recentRecords:"Rekod ventilasi terkini",recentHint:"Rekod yang dimasukkan oleh staf.",search:"Cari kandang atau catatan",noFarms:"Belum ada farm aktif. Farm akan muncul selepas admin mendaftarkannya.",noHouses:"Belum ada kandang berdaftar untuk farm ini.",noRecords:"Belum ada rekod ventilasi.",location:"Lokasi",doc:"Tarikh DOC",age:"Umur ayam",weeks:"minggu",days:"hari",setPoint:"Set point",manual:"Fan manual",auto:"Fan auto",pad:"Cooling pad",alarm:"Alarm",notes:"Catatan",time:"Tarikh rekod",noAlarm:"Tiada alarm direkodkan",loading:"Memuatkan data…",logout:"Log keluar",config:"Konfigurasi belum lengkap. Semak Project URL dan Publishable key dalam kod.",loginFailed:"Log masuk gagal. Semak e-mel dan kata laluan.",notAdmin:"Akaun ini bukan admin aktif. Akses FarmVision ditolak.",loadError:"Gagal membaca data. Semak jadual, polisi RLS dan sambungan.",last:"Rekod terkini",refreshDone:"Data berjaya dimuat semula.",all:"Semua farm",status:"Aktif",noLocation:"Lokasi belum diisi",recordBy:"Direkodkan oleh staf",unknown:"Tidak diketahui"
+},
+en:{
+welcome:"Welcome, boss",loginHint:"Sign in to view all farms.",email:"Email",password:"Password",login:"Sign in",adminOnly:"Access is restricted to an active boss/admin account.",executive:"EXECUTIVE OVERVIEW",title:"All-Farm Monitoring",connected:"Cloud connection active",farmCount:"Total farms",farmCaption:"Registered locations",houseCount:"Total houses",houseCaption:"Across all farms",recordCount:"Ventilation records",recordCaption:"Saved records",alarmCount:"Reported alarms",alarmCaption:"Records with alarm status",allFarms:"All farms",chooseFarm:"Select a farm to view its houses.",refresh:"Refresh",selectedFarm:"SELECTED FARM",housesInFarm:"Houses in farm",close:"Close",recentRecords:"Latest ventilation records",recentHint:"Records entered by farm staff.",search:"Search house or notes",noFarms:"No active farms yet. Farms will appear when registered by an admin.",noHouses:"No houses registered for this farm.",noRecords:"No ventilation records yet.",location:"Location",doc:"DOC date",age:"Bird age",weeks:"weeks",days:"days",setPoint:"Set point",manual:"Fan manual",auto:"Fan auto",pad:"Cooling pad",alarm:"Alarm",notes:"Notes",time:"Record date",noAlarm:"No alarm recorded",loading:"Loading data…",logout:"Sign out",config:"Configuration incomplete. Check Project URL and Publishable key in the code.",loginFailed:"Sign-in failed. Check your email and password.",notAdmin:"This account is not an active admin. FarmVision access denied.",loadError:"Could not read data. Check tables, RLS policies and connection.",last:"Latest record",refreshDone:"Data refreshed successfully.",all:"All farms",status:"Active",noLocation:"Location not provided",recordBy:"Entered by farm staff",unknown:"Unknown"
+}};
+function t(k){return words[lang][k]||k}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function dateFmt(v){if(!v)return "—";return new Date(v).toLocaleString(lang==="ms"?"ms-MY":"en-MY",{dateStyle:"medium",timeStyle:"short"})}
+function age(doc){if(!doc)return "—";const d=new Date(doc+"T00:00:00");const days=Math.floor((new Date().setHours(0,0,0,0)-d.getTime())/86400000);if(days<0)return "DOC future";return `${Math.floor(days/7)} ${t("weeks")} ${days%7} ${t("days")}`}
+function msg(el,text,type="error"){el.innerHTML=`<div class="${type}">${esc(text)}</div>`}
+function toast(text){$("toast").textContent=text;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",3000)}
+
+function applyLanguage(){
+ document.documentElement.lang=lang==="ms"?"ms":"en";
+ document.querySelectorAll("[data-i]").forEach(el=>el.textContent=t(el.dataset.i));
+ document.querySelectorAll("[data-placeholder]").forEach(el=>el.placeholder=t(el.dataset.placeholder));
+ $("langBtn").textContent=lang==="ms"?"EN":"BM";
+ $("logoutBtn").textContent=t("logout");
+ renderFarms();renderRecords();
+ if(selectedFarm)openFarm(selectedFarm.id,false);
+}
+$("langBtn").addEventListener("click",()=>{lang=lang==="ms"?"en":"ms";applyLanguage()});
+
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(!sb){msg($("loginMessage"),t("config"));return}
+ const btn=e.submitter;btn.disabled=true;
+ try{
+  const {data,error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error)throw error;
+  user=data.user;
+  await enterApp();
+ }catch(err){msg($("loginMessage"),t("loginFailed")+" "+(err.message||""))}
+ finally{btn.disabled=false}
+});
+async function enterApp(){
+ const {data:p,error}=await sb.from("profiles").select("id,full_name,role,active").eq("id",user.id).maybeSingle();
+ if(error)throw error;
+ if(!p||!p.active||p.role!=="admin"){
+  await sb.auth.signOut();user=null;
+  throw new Error(t("notAdmin"));
+ }
+ profile=p;
+ $("loginView").classList.add("hidden");$("appView").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");
+ $("hello").textContent=`${p.full_name||user.email} · ADMIN`;
+ await loadAll();
+}
+$("logoutBtn").addEventListener("click",async()=>{
+ if(sb)await sb.auth.signOut();
+ user=null;profile=null;farms=[];houses=[];records=[];selectedFarm=null;
+ $("appView").classList.add("hidden");$("loginView").classList.remove("hidden");$("logoutBtn").classList.add("hidden");
+ $("farmPanel").classList.add("hidden");$("loginMessage").innerHTML="";
+});
+$("refreshBtn").addEventListener("click",async()=>{await loadAll();toast(t("refreshDone"))});
+$("closeFarm").addEventListener("click",()=>{$("farmPanel").classList.add("hidden");selectedFarm=null;renderFarms()});
+$("farmFilter").addEventListener("change",renderRecords);
+$("searchRecords").addEventListener("input",renderRecords);
+
+async function loadAll(){
+ $("farmGrid").innerHTML=`<div class="empty">${t("loading")}</div>`;
+ $("recordList").innerHTML=`<div class="empty">${t("loading")}</div>`;
+ $("globalMessage").innerHTML="";
+ try{
+  const [f,h,r]=await Promise.all([
+   sb.from("farms").select("id,name,code,location,active").order("name"),
+   sb.from("houses").select("id,farm_id,name,doc_date,notes,active").order("name"),
+   sb.from("ventilation_records").select("id,house_id,set_point,fan_manual,fan_auto,cooling_pad,alarm,notes,recorded_at,updated_by").order("recorded_at",{ascending:false}).limit(250)
+  ]);
+  if(f.error)throw f.error;if(h.error)throw h.error;if(r.error)throw r.error;
+  farms=(f.data||[]).filter(x=>x.active!==false);
+  houses=(h.data||[]).filter(x=>x.active!==false);
+  records=r.data||[];
+  $("statFarms").textContent=farms.length;
+  $("statHouses").textContent=houses.length;
+  $("statRecords").textContent=records.length;
+  $("statAlarms").textContent=records.filter(x=>x.alarm&& !["","None","Resolved","Tiada","Tiada alarm"].includes(x.alarm)).length;
+  const prev=selectedFarm?farms.find(x=>x.id===selectedFarm.id):null;
+  selectedFarm=prev||null;
+  renderFarms();renderFilter();renderRecords();
+  if(selectedFarm)openFarm(selectedFarm.id,false);
+  else $("farmPanel").classList.add("hidden");
+ }catch(err){
+  $("farmGrid").innerHTML=`<div class="empty">${t("loadError")}</div>`;
+  $("recordList").innerHTML=`<div class="empty">${t("loadError")}</div>`;
+  msg($("globalMessage"),t("loadError")+" "+(err.message||""));
+ }
+}
+function renderFilter(){
+ const val=$("farmFilter").value;
+ $("farmFilter").innerHTML=`<option value="">${t("all")}</option>`+farms.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join("");
+ if(farms.some(f=>f.id===val))$("farmFilter").value=val;
+}
+function renderFarms(){
+ const grid=$("farmGrid");
+ if(!farms.length){grid.innerHTML=`<div class="empty">${t("noFarms")}</div>`;return}
+ grid.innerHTML=farms.map(f=>{
+  const count=houses.filter(h=>h.farm_id===f.id).length;
+  return `<button class="farm ${selectedFarm?.id===f.id?"selected":""}" data-farm="${f.id}">
+   <div class="row"><div class="farm-icon">🏡</div><span class="pill">${count} ${lang==="ms"?"kandang":"houses"}</span></div>
+   <h3>${esc(f.name)}</h3><div class="muted">${esc(f.code||"")}</div>
+   <p class="muted">${esc(f.location||t("noLocation"))}</p>
+  </button>`;
+ }).join("");
+ grid.querySelectorAll("[data-farm]").forEach(b=>b.addEventListener("click",()=>openFarm(b.dataset.farm)));
+}
+function openFarm(id,scroll=true){
+ selectedFarm=farms.find(f=>f.id===id);if(!selectedFarm)return;
+ $("farmPanel").classList.remove("hidden");
+ $("farmName").textContent=selectedFarm.name;
+ $("farmLocation").textContent=[selectedFarm.code,selectedFarm.location||t("noLocation")].filter(Boolean).join(" · ");
+ const hs=houses.filter(h=>h.farm_id===selectedFarm.id);
+ $("houseBadge").textContent=hs.length;
+ $("houseGrid").innerHTML=hs.length?hs.map(h=>{
+  const rs=records.filter(r=>r.house_id===h.id);
+  const last=rs[0];
+  return `<div class="house">
+   <div class="row"><div class="farm-icon">🐔</div><span class="pill">${rs.length} ${lang==="ms"?"rekod":"records"}</span></div>
+   <h3>${esc(h.name)}</h3>
+   <div class="muted">${t("doc")}: ${esc(h.doc_date||"—")}</div>
+   <div class="muted">${t("age")}: ${esc(age(h.doc_date))}</div>
+   <div class="muted">${t("last")}: ${last?esc(dateFmt(last.recorded_at)):"—"}</div>
+   <button class="btn" style="width:100%;margin-top:12px" data-record-filter="${h.id}">${lang==="ms"?"Lihat rekod":"View records"}</button>
+  </div>`;
+ }).join(""):`<div class="empty">${t("noHouses")}</div>`;
+ $("houseGrid").querySelectorAll("[data-record-filter]").forEach(b=>b.addEventListener("click",()=>{
+  const h=hs.find(x=>x.id===b.dataset.recordFilter);
+  $("farmFilter").value=selectedFarm.id;$("searchRecords").value=h?.name||"";
+  renderRecords();$("recordsPanel").scrollIntoView({behavior:"smooth",block:"start"});
+ }));
+ renderFarms();
+ if(scroll)$("farmPanel").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderRecords(){
+ if(!$("recordList"))return;
+ const farmId=$("farmFilter").value;
+ const q=$("searchRecords").value.trim().toLowerCase();
+ const houseMap=new Map(houses.map(h=>[h.id,h]));
+ const farmMap=new Map(farms.map(f=>[f.id,f]));
+ const filtered=records.filter(r=>{
+  const h=houseMap.get(r.house_id);if(!h)return false;
+  if(farmId&&h.farm_id!==farmId)return false;
+  const f=farmMap.get(h.farm_id);
+  const hay=[h.name,f?.name,r.notes,r.alarm,r.fan_manual,r.fan_auto].join(" ").toLowerCase();
+  return !q||hay.includes(q);
+ });
+ if(!filtered.length){$("recordList").innerHTML=`<div class="empty">${t("noRecords")}</div>`;return}
+ $("recordList").innerHTML=filtered.slice(0,100).map(r=>{
+  const h=houseMap.get(r.house_id),f=farmMap.get(h?.farm_id);
+  const alarm=r.alarm||"—";
+  const isAlarm=alarm!== "—" && !["None","Resolved","Tiada",""].includes(alarm);
+  return `<article class="record">
+   <div class="row"><div><strong>${esc(h?.name||t("unknown"))}</strong><div class="muted">${esc(f?.name||"—")} · ${esc(dateFmt(r.recorded_at))}</div></div><span class="pill ${isAlarm?"warn":""}">${esc(alarm)}</span></div>
+   <div class="record-grid">
+    <div><small>${t("setPoint")}</small><b>${r.set_point==null?"—":esc(r.set_point)+" °C"}</b></div>
+    <div><small>${t("manual")}</small><b>${esc(r.fan_manual||"—")}</b></div>
+    <div><small>${t("auto")}</small><b>${esc(r.fan_auto||"—")}</b></div>
+    <div><small>${t("pad")}</small><b>${esc(r.cooling_pad||"—")}</b></div>
+    <div style="grid-column:span 2"><small>${t("notes")}</small><b>${esc(r.notes||"—")}</b></div>
+   </div>
+  </article>`;
+ }).join("");
+}
+async function init(){
+ if(!configured){msg($("loginMessage"),t("config"));return}
+ const {data:{session}}=await sb.auth.getSession();
+ if(session){user=session.user;try{await enterApp()}catch(err){msg($("loginMessage"),err.message||t("loadError"))}}
+}
+init();
+</script>
+</body>
+</html>
