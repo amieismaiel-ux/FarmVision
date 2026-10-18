@@ -116,7 +116,35 @@ main{max-width:1250px;margin:auto;padding:22px 16px 55px}
   </section>
 
   <div id="globalMessage"></div>
+<section class="panel" id="managementPanel">
+  <div class="section-head" style="margin-top:0">
+    <div>
+      <h2>⚙️ Pengurusan Data</h2>
+      <div class="muted">Admin sahaja · Admin only</div>
+    </div>
+  </div>
 
+  <div class="filters">
+    <button class="primary" id="addFarmBtn" type="button">
+      + Tambah Ladang
+    </button>
+    <button class="btn" id="manageFarmBtn" type="button">
+      Edit Ladang Dipilih
+    </button>
+    <button class="btn" id="addHouseBtn" type="button">
+      + Tambah Kandang
+    </button>
+    <button class="btn" id="manageHouseBtn" type="button">
+      Edit Kandang
+    </button>
+  </div>
+
+  <div class="muted" style="margin-top:12px">
+    Pilih ladang terlebih dahulu sebelum mengurus kandang.
+    Changes are saved to Supabase.
+  </div>
+  <div id="managementMessage"></div>
+</section>
   <div class="section-head"><div><h2 data-i="allFarms">Semua farm</h2><div class="muted" data-i="chooseFarm">Pilih farm untuk melihat kandang.</div></div><button class="btn" id="refreshBtn" data-i="refresh">Muat semula</button></div>
   <div id="farmGrid" class="farm-grid"><div class="empty">Loading…</div></div>
 
@@ -130,6 +158,62 @@ main{max-width:1250px;margin:auto;padding:22px 16px 55px}
     <div class="section-head" style="margin-top:0"><div><h2 data-i="recentRecords">Rekod ventilasi terkini</h2><div class="muted" data-i="recentHint">Rekod yang dimasukkan oleh staf.</div></div></div>
     <div class="filters"><select id="farmFilter"><option value="">Semua farm</option></select><input id="searchRecords" type="search" data-placeholder="search" placeholder="Cari kandang atau catatan"></div>
     <div id="recordList" class="record-list"><div class="empty">Loading…</div></div>
+  </section>
+  <section class="panel hidden" id="managementFormPanel">
+  <div class="row">
+    <h2 id="managementFormTitle">Pengurusan Data</h2>
+    <button class="btn" id="cancelManagementBtn" type="button">
+      Batal
+    </button>
+  </div>
+
+  <form id="managementForm">
+    <input id="managementType" type="hidden">
+    <input id="managementId" type="hidden">
+
+    <div class="field" id="farmSelectField">
+      <label for="managementFarmSelect">Pilih ladang</label>
+      <select id="managementFarmSelect">
+        <option value="">Pilih ladang</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="managementName">Nama</label>
+      <input id="managementName" required maxlength="120">
+    </div>
+
+    <div class="field" id="farmCodeField">
+      <label for="managementCode">Kod ladang</label>
+      <input id="managementCode" maxlength="60">
+    </div>
+
+    <div class="field" id="farmLocationField">
+      <label for="managementLocation">Lokasi</label>
+      <input id="managementLocation" maxlength="200">
+    </div>
+
+    <div class="field hidden" id="docField">
+      <label for="managementDoc">Tarikh DOC</label>
+      <input id="managementDoc" type="date">
+    </div>
+
+    <div class="field hidden" id="notesField">
+      <label for="managementNotes">Nota</label>
+      <input id="managementNotes" maxlength="1000">
+    </div>
+
+    <div class="field">
+      <label>
+        <input id="managementActive" type="checkbox" checked>
+        Aktif / Active
+      </label>
+    </div>
+
+    <button class="primary" type="submit" id="saveManagementBtn">
+      Simpan
+    </button>
+  </form>
   </section>
   <div class="footer">FarmVision · Executive Monitoring · v1.0</div>
 </main>
@@ -317,7 +401,186 @@ async function init(){
  const {data:{session}}=await sb.auth.getSession();
  if(session){user=session.user;try{await enterApp()}catch(err){msg($("loginMessage"),err.message||t("loadError"))}}
 }
-init();
+
+  // ===== FARMVISION DATA MANAGEMENT =====
+const managementPanel = $("managementFormPanel");
+const managementForm = $("managementForm");
+
+function managementMessage(text, type = "notice") {
+  msg($("managementMessage"), text, type);
+}
+
+function refreshFarmOptions(selectedId = "") {
+  const select = $("managementFarmSelect");
+  select.innerHTML =
+    `<option value="">${lang === "ms" ? "Pilih ladang" : "Select farm"}</option>` +
+    farms.map(f =>
+      `<option value="${esc(f.id)}">${esc(f.name)} (${esc(f.code || "")})</option>`
+    ).join("");
+  select.value = selectedId;
+}
+
+function showManagementForm(type, item = null) {
+  $("managementType").value = type;
+  $("managementId").value = item?.id || "";
+  $("managementName").value = item?.name || "";
+  $("managementCode").value = item?.code || "";
+  $("managementLocation").value = item?.location || "";
+  $("managementDoc").value = item?.doc_date || "";
+  $("managementNotes").value = item?.notes || "";
+  $("managementActive").checked = item ? item.active !== false : true;
+
+  const isFarm = type === "farm";
+  $("managementFormTitle").textContent = isFarm
+    ? (item ? "Edit Ladang" : "Tambah Ladang")
+    : (item ? "Edit Kandang" : "Tambah Kandang");
+
+  $("farmSelectField").classList.toggle("hidden", isFarm);
+  $("farmCodeField").classList.toggle("hidden", !isFarm);
+  $("farmLocationField").classList.toggle("hidden", !isFarm);
+  $("docField").classList.toggle("hidden", isFarm);
+  $("notesField").classList.toggle("hidden", isFarm);
+
+  refreshFarmOptions(isFarm ? "" : selectedFarm?.id || item?.farm_id || "");
+  managementPanel.classList.remove("hidden");
+  managementPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("addFarmBtn").addEventListener("click", () => {
+  showManagementForm("farm");
+});
+
+$("manageFarmBtn").addEventListener("click", () => {
+  if (!selectedFarm) {
+    managementMessage("Pilih ladang dahulu.", "notice");
+    return;
+  }
+  showManagementForm("farm", selectedFarm);
+});
+
+$("addHouseBtn").addEventListener("click", () => {
+  if (!selectedFarm) {
+    managementMessage("Pilih ladang dahulu sebelum menambah kandang.", "notice");
+    return;
+  }
+  showManagementForm("house");
+});
+
+$("manageHouseBtn").addEventListener("click", () => {
+  if (!selectedFarm) {
+    managementMessage("Pilih ladang dahulu.", "notice");
+    return;
+  }
+
+  const candidates = houses.filter(h => h.farm_id === selectedFarm.id);
+  if (!candidates.length) {
+    managementMessage("Tiada kandang untuk diedit dalam ladang ini.", "notice");
+    return;
+  }
+
+  const choice = prompt(
+    "Masukkan nombor kandang untuk diedit:\n" +
+    candidates.map((h, i) => `${i + 1}. ${h.name}`).join("\n")
+  );
+
+  if (choice === null) return;
+  const index = Number(choice) - 1;
+  if (!Number.isInteger(index) || index < 0 || index >= candidates.length) {
+    managementMessage("Pilihan kandang tidak sah.", "error");
+    return;
+  }
+
+  showManagementForm("house", candidates[index]);
+});
+
+$("cancelManagementBtn").addEventListener("click", () => {
+  managementPanel.classList.add("hidden");
+  managementForm.reset();
+});
+
+managementForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!sb || !user || !profile || profile.role !== "admin" || !profile.active) {
+    managementMessage("Akses admin diperlukan.", "error");
+    return;
+  }
+
+  const type = $("managementType").value;
+  const id = $("managementId").value;
+  const name = $("managementName").value.trim();
+  const active = $("managementActive").checked;
+  const button = $("saveManagementBtn");
+
+  if (!name) {
+    managementMessage("Nama wajib diisi.", "error");
+    return;
+  }
+
+  let table, payload;
+
+  if (type === "farm") {
+    table = "farms";
+    payload = {
+      name,
+      code: $("managementCode").value.trim() || null,
+      location: $("managementLocation").value.trim(),
+      active
+    };
+  } else if (type === "house") {
+    const farmId = $("managementFarmSelect").value;
+    if (!farmId) {
+      managementMessage("Pilih ladang untuk kandang ini.", "error");
+      return;
+    }
+
+    table = "houses";
+    payload = {
+      farm_id: farmId,
+      name,
+      doc_date: $("managementDoc").value || null,
+      notes: $("managementNotes").value.trim(),
+      active
+    };
+  } else {
+    managementMessage("Jenis data tidak sah.", "error");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Menyimpan…";
+
+  try {
+    let result;
+
+    if (id) {
+      result = await sb.from(table).update(payload).eq("id", id);
+    } else {
+      result = await sb.from(table).insert(payload);
+    }
+
+    if (result.error) throw result.error;
+
+    managementMessage(
+      id ? "Perubahan berjaya disimpan." : "Data baharu berjaya ditambah.",
+      "success"
+    );
+
+    managementPanel.classList.add("hidden");
+    managementForm.reset();
+    await loadAll();
+    toast("Data berjaya disimpan.");
+  } catch (error) {
+    managementMessage(
+      "Gagal menyimpan: " + (error.message || "Ralat tidak diketahui"),
+      "error"
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "Simpan";
+  }
+});
+  init();
 </script>
 </body>
 </html>
